@@ -1,5 +1,6 @@
 python-telegram-bot==20.7
-aiohttp==3.9.3
+aiohttp[speedups]==3.9.3
 beautifulsoup4==4.12.3
 python-dotenv==1.0.1
 lxml==5.1.0
+Brotli==1.1.0
