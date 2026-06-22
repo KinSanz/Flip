@@ -153,42 +153,65 @@ def formater_alerte(titre: str, plateforme: str, localisation: str,
 # ─────────────────────────────────────────
 
 async def scraper_vinted(session: aiohttp.ClientSession, keyword: str) -> list[dict]:
-    """Scrape Vinted France pour un mot-clé donné."""
+    """
+    Scrape Vinted via leur endpoint public (avec cookie session).
+    Fallback sur recherche HTML si l'API renvoie 0 résultats.
+    """
     resultats = []
-    url = (
-        f"https://www.vinted.fr/api/v2/catalog/items"
-        f"?search_text={keyword.replace(' ', '+')}"
-        f"&catalog_ids=&per_page=20&order=newest_first"
-    )
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "application/json",
+
+    # Étape 1 : récupérer un cookie de session valide
+    headers_browser = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "fr-FR,fr;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
     }
+
     try:
-        async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-            if resp.status != 200:
-                return []
-            data = await resp.json()
-            items = data.get("items", [])
-            for item in items:
-                titre = item.get("title", "")
-                prix_str = item.get("price", {})
-                if isinstance(prix_str, dict):
-                    prix = float(prix_str.get("amount", 0))
-                else:
-                    prix = float(prix_str or 0)
-                item_url = f"https://www.vinted.fr/items/{item.get('id')}"
-                ville = item.get("user", {}).get("city", "France")
-                if prix > 0:
-                    resultats.append({
-                        "titre": titre,
-                        "prix": prix,
-                        "url": item_url,
-                        "plateforme": "Vinted",
-                        "localisation": ville,
-                    })
+        # Visite la page d'accueil pour obtenir les cookies
+        async with session.get("https://www.vinted.fr", headers=headers_browser,
+                               timeout=aiohttp.ClientTimeout(total=15)) as resp:
+            cookies = resp.cookies
+
+        # Appel API avec les cookies de session
+        api_url = (
+            f"https://www.vinted.fr/api/v2/catalog/items"
+            f"?search_text={keyword.replace(' ', '%20')}"
+            f"&catalog_ids=1206&per_page=20&order=newest_first"
+        )
+        headers_api = {
+            **headers_browser,
+            "Accept": "application/json, text/plain, */*",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": f"https://www.vinted.fr/vetements?search_text={keyword.replace(' ', '+')}",
+        }
+        async with session.get(api_url, headers=headers_api, cookies=cookies,
+                               timeout=aiohttp.ClientTimeout(total=15)) as resp:
+            log.info(f"Vinted API status ({keyword}): {resp.status}")
+            if resp.status == 200:
+                data = await resp.json()
+                items = data.get("items", [])
+                log.info(f"Vinted ({keyword}): {len(items)} résultats")
+                for item in items:
+                    titre = item.get("title", "")
+                    prix_str = item.get("price", {})
+                    prix = float(prix_str.get("amount", 0)) if isinstance(prix_str, dict) else float(prix_str or 0)
+                    item_url = f"https://www.vinted.fr/items/{item.get('id')}"
+                    ville = item.get("user", {}).get("city", "France")
+                    if prix > 0:
+                        resultats.append({
+                            "titre": titre,
+                            "prix": prix,
+                            "url": item_url,
+                            "plateforme": "Vinted",
+                            "localisation": ville,
+                        })
+            else:
+                log.warning(f"Vinted bloqué ({keyword}): HTTP {resp.status}")
     except Exception as e:
         log.warning(f"Vinted scraping error ({keyword}): {e}")
+
     return resultats
 
 
@@ -318,6 +341,7 @@ async def cycle_scraping(bot: Bot):
             ebay = await scraper_ebay(session, keyword)
             lbc = await scraper_leboncoin_rss(session, keyword)
             annonces = vinted + ebay + lbc
+            log.info(f"[{keyword}] Vinted:{len(vinted)} eBay:{len(ebay)} LBC:{len(lbc)}")
 
             for annonce in annonces:
                 uid = listing_id(annonce["url"])
