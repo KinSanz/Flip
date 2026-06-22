@@ -38,43 +38,24 @@ TZ              = ZoneInfo("Europe/Paris")
 # Larges exprès — c'est Claude qui filtre, pas des regex
 # ═══════════════════════════════════════════════════════════════════
 KEYWORDS_VINTED = [
-    # Switch
-    "zelda switch", "mario switch", "pokemon switch", "nintendo switch jeu",
-    "animal crossing switch", "splatoon switch", "kirby switch",
-    "smash bros switch", "mario kart switch", "luigi switch",
-    "xenoblade switch", "fire emblem switch", "metroid switch",
-    "minecraft switch", "lot jeux switch", "nintendo switch lite",
-    # PS4
-    "jeu ps4", "the last of us ps4", "god of war ps4", "spider-man ps4",
-    "red dead redemption ps4", "ghost of tsushima ps4", "elden ring ps4",
-    "bloodborne ps4", "persona ps4", "lot jeux ps4", "manette ps4",
-    # Xbox
-    "manette xbox one", "lot jeux xbox",
-    # GBA
-    "game boy advance", "game boy color", "game boy pocket",
-    "gameboy advance", "pokemon gameboy", "zelda gameboy",
-    # DS / 3DS
-    "nintendo ds", "nintendo ds lite", "nintendo dsi",
-    "nintendo 3ds", "nintendo 3ds xl", "new 3ds",
-    "lot jeux ds", "lot jeux 3ds", "pokemon ds",
-    # PSP / Vita
-    "psp console", "psp playstation", "ps vita", "playstation vita",
-    "lot jeux psp",
-    # Rétro
-    "console ps1", "console ps2", "nintendo 64", "super nintendo",
-    "megadrive console", "lot jeux ps1", "lot jeux ps2",
-    # Lots
-    "lot jeux video", "collection jeux video",
+    # Switch — jeux les plus revendus
+    "zelda switch", "mario kart switch", "pokemon switch",
+    "animal crossing switch", "smash bros switch", "mario odyssey switch",
+    "lot jeux switch", "nintendo switch lite",
+    # PS4 — meilleure marge
+    "lot jeux ps4", "manette ps4", "elden ring ps4", "bloodborne ps4",
+    # Retrogaming — marge la plus haute
+    "game boy advance", "game boy color", "nintendo ds lite",
+    "nintendo 3ds", "psp console", "ps vita",
+    # Rétro consoles
+    "console ps1", "nintendo 64",
 ]
 
 KEYWORDS_LBC = [
-    "zelda switch", "mario kart switch", "pokemon switch", "animal crossing switch",
-    "lot jeux switch", "console nintendo switch",
-    "the last of us ps4", "god of war ps4", "elden ring ps4",
-    "lot jeux ps4", "manette ps4",
-    "game boy advance", "game boy color", "gameboy",
+    "lot jeux switch", "lot jeux ps4",
+    "game boy advance", "game boy color",
     "nintendo ds", "nintendo 3ds", "psp console",
-    "console ps1", "console ps2", "nintendo 64", "super nintendo", "megadrive",
+    "console ps1", "nintendo 64", "super nintendo",
     "lot jeux video",
 ]
 
@@ -353,7 +334,7 @@ async def scraper_vinted(session: aiohttp.ClientSession, keyword: str) -> list[d
         api_url = (
             "https://www.vinted.fr/api/v2/catalog/items"
             f"?search_text={keyword.replace(' ', '%20')}"
-            "&catalog_ids=139&per_page=30&order=newest_first"
+            "&catalog_ids=139&per_page=10&order=newest_first"
         )
         headers_api = {
             **headers_nav,
